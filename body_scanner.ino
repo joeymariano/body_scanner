@@ -3,7 +3,7 @@
 
 #include <Controllino.h>
 
-const unsigned long stepTime = 1000;     // per LED ON time
+const unsigned long stepTime = 2000;     // per LED ON time
 const unsigned long allOnTime = 6000;   // all LEDs ON time
 
 unsigned long previousMillis = 0;
@@ -55,7 +55,7 @@ void loop() {
         index++;
 
         if (index >= numOutputs) {
-          index = numOutputs - 1;
+          index = numOutputs - 2;
           state = BACKWARD;
         }
 
