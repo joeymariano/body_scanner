@@ -1,7 +1,10 @@
+#include <SoftPWM.h>
+#include <SoftPWM_timer.h>
+
 #include <Controllino.h>
 
-const unsigned long stepTime = 400;     // per LED ON time
-const unsigned long allOnTime = 4000;   // all LEDs ON time
+const unsigned long stepTime = 1000;     // per LED ON time
+const unsigned long allOnTime = 6000;   // all LEDs ON time
 
 unsigned long previousMillis = 0;
 
@@ -28,6 +31,8 @@ const uint8_t outputs[] = {
 const uint8_t numOutputs = sizeof(outputs) / sizeof(outputs[0]);
 
 void setup() {
+  SoftPWMBegin();
+
   for (uint8_t i = 0; i < numOutputs; i++) {
     pinMode(outputs[i], OUTPUT);
     digitalWrite(outputs[i], LOW);
