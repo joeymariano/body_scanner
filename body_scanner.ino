@@ -2,9 +2,9 @@
 #include <SoftPWM_timer.h>
 #include <Controllino.h>
 
-const unsigned long stepTime = 4000;     // per LED ON time
-const unsigned long allOnTime = 8000;    // all LEDs ON time
-const unsigned long fadeTime = 1000;      // fade in/out time
+const unsigned long fadeTime   = 1000;   // fade in/out time
+const unsigned long holdTime   = 4000;  // fully ON time
+const unsigned long allOnTime  = 6000;
 
 unsigned long previousMillis = 0;
 
@@ -14,10 +14,16 @@ enum State {
   ALL_ON
 };
 
+enum Phase {
+  FADE_IN,
+  HOLD,
+  FADE_OUT
+};
+
 State state = FORWARD;
+Phase phase = FADE_IN;
 
 int index = 0;
-bool outputOn = false;
 
 const uint8_t outputs[] = {
   CONTROLLINO_D0,
@@ -34,7 +40,7 @@ void setup() {
   SoftPWMBegin();
 
   for (uint8_t i = 0; i < numOutputs; i++) {
-    SoftPWMSet(outputs[i], 0);  // start OFF
+    SoftPWMSet(outputs[i], 0);
     SoftPWMSetFadeTime(outputs[i], fadeTime, fadeTime);
   }
 }
@@ -45,54 +51,57 @@ void loop() {
   switch (state) {
 
     case FORWARD:
-      if (!outputOn) {
-        SoftPWMSet(outputs[index], 255);  // fade ON
-        previousMillis = now;
-        outputOn = true;
-      }
-      else if (now - previousMillis >= stepTime) {
-        SoftPWMSet(outputs[index], 0);    // fade OFF
-        index++;
-
-        if (index >= numOutputs) {
-          index = numOutputs - 2;
-          state = BACKWARD;
-        }
-
-        outputOn = false;
-      }
-      break;
-
     case BACKWARD:
-      if (!outputOn) {
-        SoftPWMSet(outputs[index], 255);  // fade ON
-        previousMillis = now;
-        outputOn = true;
-      }
-      else if (now - previousMillis >= stepTime) {
-        SoftPWMSet(outputs[index], 0);    // fade OFF
-        index--;
+      switch (phase) {
 
-        if (index < 0) {
-          state = ALL_ON;
+        case FADE_IN:
+          SoftPWMSet(outputs[index], 255);
           previousMillis = now;
+          phase = HOLD;
+          break;
 
-          for (uint8_t i = 0; i < numOutputs; i++) {
-            SoftPWMSet(outputs[i], 255);  // fade ALL ON
+        case HOLD:
+          if (now - previousMillis >= holdTime) {
+            SoftPWMSet(outputs[index], 0);
+            previousMillis = now;
+            phase = FADE_OUT;
           }
-        }
+          break;
 
-        outputOn = false;
+        case FADE_OUT:
+          if (now - previousMillis >= fadeTime) {
+
+            if (state == FORWARD) {
+              index++;
+              if (index >= numOutputs) {
+                index = numOutputs - 2;
+                state = BACKWARD;
+              }
+            } else {
+              index--;
+              if (index < 0) {
+                state = ALL_ON;
+                previousMillis = now;
+                for (uint8_t i = 0; i < numOutputs; i++) {
+                  SoftPWMSet(outputs[i], 255);
+                }
+                return;
+              }
+            }
+
+            phase = FADE_IN;
+          }
+          break;
       }
       break;
 
     case ALL_ON:
       if (now - previousMillis >= allOnTime) {
         for (uint8_t i = 0; i < numOutputs; i++) {
-          SoftPWMSet(outputs[i], 0);      // fade ALL OFF
+          SoftPWMSet(outputs[i], 0);
         }
-
         index = 0;
+        phase = FADE_IN;
         state = FORWARD;
       }
       break;
