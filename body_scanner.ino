@@ -1,10 +1,10 @@
 #include <SoftPWM.h>
 #include <SoftPWM_timer.h>
-
 #include <Controllino.h>
 
-const unsigned long stepTime = 2000;     // per LED ON time
-const unsigned long allOnTime = 6000;   // all LEDs ON time
+const unsigned long stepTime = 4000;     // per LED ON time
+const unsigned long allOnTime = 8000;    // all LEDs ON time
+const unsigned long fadeTime = 1000;      // fade in/out time
 
 unsigned long previousMillis = 0;
 
@@ -34,8 +34,8 @@ void setup() {
   SoftPWMBegin();
 
   for (uint8_t i = 0; i < numOutputs; i++) {
-    pinMode(outputs[i], OUTPUT);
-    digitalWrite(outputs[i], LOW);
+    SoftPWMSet(outputs[i], 0);  // start OFF
+    SoftPWMSetFadeTime(outputs[i], fadeTime, fadeTime);
   }
 }
 
@@ -46,12 +46,12 @@ void loop() {
 
     case FORWARD:
       if (!outputOn) {
-        digitalWrite(outputs[index], HIGH);
+        SoftPWMSet(outputs[index], 255);  // fade ON
         previousMillis = now;
         outputOn = true;
       }
       else if (now - previousMillis >= stepTime) {
-        digitalWrite(outputs[index], LOW);
+        SoftPWMSet(outputs[index], 0);    // fade OFF
         index++;
 
         if (index >= numOutputs) {
@@ -65,12 +65,12 @@ void loop() {
 
     case BACKWARD:
       if (!outputOn) {
-        digitalWrite(outputs[index], HIGH);
+        SoftPWMSet(outputs[index], 255);  // fade ON
         previousMillis = now;
         outputOn = true;
       }
       else if (now - previousMillis >= stepTime) {
-        digitalWrite(outputs[index], LOW);
+        SoftPWMSet(outputs[index], 0);    // fade OFF
         index--;
 
         if (index < 0) {
@@ -78,7 +78,7 @@ void loop() {
           previousMillis = now;
 
           for (uint8_t i = 0; i < numOutputs; i++) {
-            digitalWrite(outputs[i], HIGH);
+            SoftPWMSet(outputs[i], 255);  // fade ALL ON
           }
         }
 
@@ -89,7 +89,7 @@ void loop() {
     case ALL_ON:
       if (now - previousMillis >= allOnTime) {
         for (uint8_t i = 0; i < numOutputs; i++) {
-          digitalWrite(outputs[i], LOW);
+          SoftPWMSet(outputs[i], 0);      // fade ALL OFF
         }
 
         index = 0;
