@@ -1,17 +1,25 @@
+#include <avr/wdt.h>
 #include <SoftPWM.h>
 #include <SoftPWM_timer.h>
 #include <Controllino.h>
 
-const unsigned long fadeTime   = 1000;   // fade in/out time
-const unsigned long holdTime   = 4000;  // fully ON time
-const unsigned long allOnTime  = 6000;
+/* ---------------- Timing ---------------- */
+
+unsigned long fadeTime    = 1000;
+unsigned long holdTime    = 2000;
+unsigned long allOnTime   = 4000;
+unsigned long allOffTime  = 2000;
 
 unsigned long previousMillis = 0;
+int loopCount = 0;
+
+/* ---------------- State Machine ---------------- */
 
 enum State {
   FORWARD,
   BACKWARD,
-  ALL_ON
+  ALL_ON,
+  ALL_OFF
 };
 
 enum Phase {
@@ -22,8 +30,9 @@ enum Phase {
 
 State state = FORWARD;
 Phase phase = FADE_IN;
-
 int index = 0;
+
+/* ---------------- Outputs ---------------- */
 
 const uint8_t outputs[] = {
   CONTROLLINO_D0,
@@ -36,22 +45,61 @@ const uint8_t outputs[] = {
 
 const uint8_t numOutputs = sizeof(outputs) / sizeof(outputs[0]);
 
-void setup() {
-  SoftPWMBegin();
+/* ---------------- Helpers ---------------- */
 
+void applyFadeTimes() {
   for (uint8_t i = 0; i < numOutputs; i++) {
-    SoftPWMSet(outputs[i], 0);
     SoftPWMSetFadeTime(outputs[i], fadeTime, fadeTime);
   }
 }
 
+bool systemHealthy() {
+  return true;
+}
+
+/* ---------------- Setup ---------------- */
+
+void setup() {
+  Serial.begin(9600);
+  SoftPWMBegin();
+
+  wdt_disable();
+  wdt_enable(WDTO_2S);
+
+  for (uint8_t i = 0; i < numOutputs; i++) {
+    SoftPWMSet(outputs[i], 0);
+  }
+
+  applyFadeTimes();
+}
+
+/* ---------------- Loop ---------------- */
+
 void loop() {
   unsigned long now = millis();
+
+  /* ---- Attract vs Normal Mode ---- */
+  if (loopCount % 3 == 0) {
+    fadeTime   = 50;
+    holdTime   = 25;
+    allOnTime  = 250;
+    allOffTime = 100;
+  } else {
+    fadeTime   = 1200;
+    holdTime   = 2000;
+    allOnTime  = 4000;
+    allOffTime = 2000;
+  }
+
+  applyFadeTimes();
+
+  /* ---- State Machine ---- */
 
   switch (state) {
 
     case FORWARD:
     case BACKWARD:
+
       switch (phase) {
 
         case FADE_IN:
@@ -61,7 +109,7 @@ void loop() {
           break;
 
         case HOLD:
-          if (now - previousMillis >= holdTime) {
+          if (now - previousMillis >= fadeTime + holdTime) {
             SoftPWMSet(outputs[index], 0);
             previousMillis = now;
             phase = FADE_OUT;
@@ -85,7 +133,7 @@ void loop() {
                 for (uint8_t i = 0; i < numOutputs; i++) {
                   SoftPWMSet(outputs[i], 255);
                 }
-                return;
+                break;
               }
             }
 
@@ -100,10 +148,27 @@ void loop() {
         for (uint8_t i = 0; i < numOutputs; i++) {
           SoftPWMSet(outputs[i], 0);
         }
+        previousMillis = now;
+        state = ALL_OFF;
+      }
+      break;
+
+    case ALL_OFF:
+      if (now - previousMillis >= allOffTime) {
         index = 0;
         phase = FADE_IN;
         state = FORWARD;
+        loopCount++;
+        if(loopCount >= 1000) {
+          loopCount = 0;
+          }
+        Serial.println(loopCount);
       }
       break;
+  }
+
+  /* ---- Watchdog ---- */
+  if (systemHealthy()) {
+    wdt_reset();
   }
 }
