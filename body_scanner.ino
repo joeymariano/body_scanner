@@ -39,8 +39,7 @@ const uint8_t outputs[] = {
   CONTROLLINO_D1,
   CONTROLLINO_D2,
   CONTROLLINO_D3,
-  CONTROLLINO_D4,
-  CONTROLLINO_D5
+  CONTROLLINO_D4
 };
 
 const uint8_t numOutputs = sizeof(outputs) / sizeof(outputs[0]);
