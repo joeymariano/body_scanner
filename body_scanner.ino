@@ -77,7 +77,6 @@ bool systemHealthy() {
 
 /* ---------------- Setup ---------------- */
 void setup() {
-  Serial.begin(9600);
   SoftPWMBegin();
   wdt_disable();
   wdt_enable(WDTO_2S);
@@ -95,7 +94,7 @@ void loop() {
   
   /* ---- Attract vs Normal Mode ---- */
   if (loopCount % 3 == 0) {
-    fadeTime   = 50;
+    fadeTime   = 50; // in milliseconds
     holdTime   = 25;
     allOnTime  = 250;
     allOffTime = 100;
@@ -110,7 +109,7 @@ void loop() {
   /* ---- State Machine ---- */
   switch (state) {
     case FORWARD:
-    case BACKWARD:
+    case BACKWARD: // Forward and Backward share the same function
       switch (phase) {
         case FADE_IN:
           SoftPWMSet(outputs[index], applyGamma(255));  // Apply gamma correction
@@ -140,7 +139,7 @@ void loop() {
                 state = ALL_ON;
                 previousMillis = now;
                 for (uint8_t i = 0; i < numOutputs; i++) {
-                  SoftPWMSet(outputs[i], applyGamma(255));  // Apply gamma correction
+                  SoftPWMSet(outputs[i], applyGamma(255));  // gamma correction
                 }
                 break;
               }
@@ -154,7 +153,7 @@ void loop() {
     case ALL_ON:
       if (now - previousMillis >= allOnTime) {
         for (uint8_t i = 0; i < numOutputs; i++) {
-          SoftPWMSet(outputs[i], applyGamma(0));  // Apply gamma correction
+          SoftPWMSet(outputs[i], applyGamma(0));  // gamma correction
         }
         previousMillis = now;
         state = ALL_OFF;
@@ -170,7 +169,6 @@ void loop() {
         if(loopCount >= 1000) {
           loopCount = 0;
         }
-        Serial.println(loopCount);
       }
       break;
   }
