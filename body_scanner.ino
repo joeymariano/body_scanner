@@ -1,6 +1,5 @@
 #include <avr/wdt.h>
 #include <SoftPWM.h>
-#include <SoftPWM_timer.h>
 #include <Controllino.h>
 
 /* ---------------- Logarithmic Lookup Table ---------------- */
